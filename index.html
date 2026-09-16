@@ -213,7 +213,10 @@ img{ max-width:100%; }
       <div class="filters">
         <select id="fCliente"><option value="">Todos os clientes</option></select>
         <select id="fUsina"><option value="">Todas as usinas</option></select>
-        <select id="fCompetencia"><option value="">Todas as competências</option></select>
+        <label class="filter-label" for="fDe">De</label>
+        <select id="fDe"></select>
+        <label class="filter-label" for="fAte">Até</label>
+        <select id="fAte"></select>
         <input type="search" id="fBusca" placeholder="Buscar usina…">
         <span class="count" id="fCount"></span>
       </div>
@@ -455,11 +458,17 @@ const DATA = [{"usina": "Caracará - UFV 1", "cliente": "Bow-e", "periodo": "202
   // ---------- table ----------
   const fCliente = document.getElementById('fCliente');
   const fUsina = document.getElementById('fUsina');
-  const fCompetencia = document.getElementById('fCompetencia');
+  const fDe = document.getElementById('fDe');
+  const fAte = document.getElementById('fAte');
   const fBusca = document.getElementById('fBusca');
   clientes.forEach(c => fCliente.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`));
   usinas.forEach(u => fUsina.insertAdjacentHTML('beforeend', `<option value="${u}">${u}</option>`));
-  periodos.slice().reverse().forEach(p => fCompetencia.insertAdjacentHTML('beforeend', `<option value="${p}">${monthLabel(p)}</option>`));
+  periodos.forEach(p => {
+    fDe.insertAdjacentHTML('beforeend', `<option value="${p}">${monthLabel(p)}</option>`);
+    fAte.insertAdjacentHTML('beforeend', `<option value="${p}">${monthLabel(p)}</option>`);
+  });
+  fDe.value = periodos[0];
+  fAte.value = periodos[periodos.length-1];
 
   let sortKey = 'periodo', sortDir = -1, page = 0;
   const pageSize = 40;
@@ -468,7 +477,11 @@ const DATA = [{"usina": "Caracará - UFV 1", "cliente": "Bow-e", "periodo": "202
     let rows = DATA;
     if(fCliente.value) rows = rows.filter(r => r.cliente === fCliente.value);
     if(fUsina.value) rows = rows.filter(r => r.usina === fUsina.value);
-    if(fCompetencia.value) rows = rows.filter(r => r.periodo === fCompetencia.value);
+    if(fDe.value || fAte.value){
+      let fromP = fDe.value || periodos[0], toP = fAte.value || periodos[periodos.length-1];
+      if(fromP > toP){ [fromP, toP] = [toP, fromP]; }
+      rows = rows.filter(r => r.periodo >= fromP && r.periodo <= toP);
+    }
     if(fBusca.value.trim()) {
       const q = fBusca.value.trim().toLowerCase();
       rows = rows.filter(r => r.usina.toLowerCase().includes(q));
@@ -512,7 +525,7 @@ const DATA = [{"usina": "Caracará - UFV 1", "cliente": "Bow-e", "periodo": "202
     return (v<0 ? '<span class="neg">' : '') + fmtBRLFull(v) + (v<0 ? '</span>' : '');
   }
 
-  [fCliente, fUsina, fCompetencia].forEach(el => el.addEventListener('change', () => { page=0; renderTable(); }));
+  [fCliente, fUsina, fDe, fAte].forEach(el => el.addEventListener('change', () => { page=0; renderTable(); }));
   fBusca.addEventListener('input', () => { page=0; renderTable(); });
   document.getElementById('pPrev').addEventListener('click', () => { if(page>0){page--; renderTable();} });
   document.getElementById('pNext').addEventListener('click', () => { page++; renderTable(); });
