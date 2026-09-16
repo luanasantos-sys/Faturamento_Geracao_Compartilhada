@@ -336,6 +336,18 @@ const DATA = [{"usina": "Caracará - UFV 1", "cliente": "Bow-e", "periodo": "202
   const clientes = CLIENT_ORDER.filter(c => DATA.some(r=>r.cliente===c));
   const usinas = [...new Set(DATA.map(r=>r.usina))].sort();
 
+  // cliente -> usinas (for cascading filters)
+  const usinasByClient = {};
+  clientes.forEach(c => {
+    usinasByClient[c] = [...new Set(DATA.filter(r=>r.cliente===c).map(r=>r.usina))].sort();
+  });
+  function populateUsinaSelect(selectEl, list){
+    const current = selectEl.value;
+    selectEl.innerHTML = '<option value="">Todas as usinas</option>' +
+      list.map(u => `<option value="${u}">${u}</option>`).join('');
+    selectEl.value = list.includes(current) ? current : '';
+  }
+
   // recent window: last 24 months with any data, for the headline charts
   const recentPeriodos = periodos.slice(-24);
 
@@ -519,7 +531,7 @@ const DATA = [{"usina": "Caracará - UFV 1", "cliente": "Bow-e", "periodo": "202
   const eDe = document.getElementById('eDe');
   const eAte = document.getElementById('eAte');
   clientes.forEach(c => eCliente.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`));
-  usinas.forEach(u => eUsina.insertAdjacentHTML('beforeend', `<option value="${u}">${u}</option>`));
+  populateUsinaSelect(eUsina, usinas);
   periodos.forEach(p => {
     eDe.insertAdjacentHTML('beforeend', `<option value="${p}">${monthLabel(p)}</option>`);
     eAte.insertAdjacentHTML('beforeend', `<option value="${p}">${monthLabel(p)}</option>`);
@@ -546,7 +558,11 @@ const DATA = [{"usina": "Caracará - UFV 1", "cliente": "Bow-e", "periodo": "202
       'Performance Alvo', 'Energia Excedente', 'var(--s1)', 'var(--s2)'
     );
   }
-  [eCliente, eUsina, eDe, eAte].forEach(el => el.addEventListener('change', redrawEnergyChart));
+  eCliente.addEventListener('change', () => {
+    populateUsinaSelect(eUsina, eCliente.value ? usinasByClient[eCliente.value] : usinas);
+    redrawEnergyChart();
+  });
+  [eUsina, eDe, eAte].forEach(el => el.addEventListener('change', redrawEnergyChart));
   redrawEnergyChart();
 
   // ---------- tarifa do contrato bar chart (by month) ----------
@@ -617,7 +633,7 @@ const DATA = [{"usina": "Caracará - UFV 1", "cliente": "Bow-e", "periodo": "202
   const tDe = document.getElementById('tDe');
   const tAte = document.getElementById('tAte');
   clientes.forEach(c => tCliente.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`));
-  usinas.forEach(u => tUsina.insertAdjacentHTML('beforeend', `<option value="${u}">${u}</option>`));
+  populateUsinaSelect(tUsina, usinas);
   periodos.forEach(p => {
     tDe.insertAdjacentHTML('beforeend', `<option value="${p}">${monthLabel(p)}</option>`);
     tAte.insertAdjacentHTML('beforeend', `<option value="${p}">${monthLabel(p)}</option>`);
@@ -642,7 +658,11 @@ const DATA = [{"usina": "Caracará - UFV 1", "cliente": "Bow-e", "periodo": "202
     const values = range.map(p => counts[p] > 0 ? sums[p]/counts[p] : null);
     drawRateBarChart(document.getElementById('tarifaChartWrap'), range, values);
   }
-  [tCliente, tUsina, tDe, tAte].forEach(el => el.addEventListener('change', redrawTarifaChart));
+  tCliente.addEventListener('change', () => {
+    populateUsinaSelect(tUsina, tCliente.value ? usinasByClient[tCliente.value] : usinas);
+    redrawTarifaChart();
+  });
+  [tUsina, tDe, tAte].forEach(el => el.addEventListener('change', redrawTarifaChart));
   redrawTarifaChart();
 
   // ---------- bar chart (by client) ----------
@@ -707,7 +727,7 @@ const DATA = [{"usina": "Caracará - UFV 1", "cliente": "Bow-e", "periodo": "202
   const fAte = document.getElementById('fAte');
   const fBusca = document.getElementById('fBusca');
   clientes.forEach(c => fCliente.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`));
-  usinas.forEach(u => fUsina.insertAdjacentHTML('beforeend', `<option value="${u}">${u}</option>`));
+  populateUsinaSelect(fUsina, usinas);
   periodos.forEach(p => {
     fDe.insertAdjacentHTML('beforeend', `<option value="${p}">${monthLabel(p)}</option>`);
     fAte.insertAdjacentHTML('beforeend', `<option value="${p}">${monthLabel(p)}</option>`);
@@ -776,7 +796,11 @@ const DATA = [{"usina": "Caracará - UFV 1", "cliente": "Bow-e", "periodo": "202
     return (cls ? `<span class="${cls}">` : '') + pct.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}) + '%' + (cls ? '</span>' : '');
   }
 
-  [fCliente, fUsina, fDe, fAte].forEach(el => el.addEventListener('change', () => { page=0; renderTable(); }));
+  fCliente.addEventListener('change', () => {
+    populateUsinaSelect(fUsina, fCliente.value ? usinasByClient[fCliente.value] : usinas);
+    page=0; renderTable();
+  });
+  [fUsina, fDe, fAte].forEach(el => el.addEventListener('change', () => { page=0; renderTable(); }));
   fBusca.addEventListener('input', () => { page=0; renderTable(); });
   document.getElementById('pPrev').addEventListener('click', () => { if(page>0){page--; renderTable();} });
   document.getElementById('pNext').addEventListener('click', () => { page++; renderTable(); });
